@@ -3,7 +3,7 @@ Version: 1.0.0
 Section: games
 Priority: optional
 Architecture: all
-Depends: python3, python3-tk, python3-cairo, python3-pil, python3-pygame, papirus-icon-theme, oxygen-sounds
+Depends: python3, python3-tk, python3-cairo, python3-pil, python3-pygame, papirus-icon-theme, oxygen-sounds, python3-pil.imagetk, cairosvg
 Maintainer: Chaslinux
 Description: Nidia's Slots
  A simple graphical slot machine game using Papirus game icons.
