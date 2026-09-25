@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=Nidia's Slots
+Comment=A simple graphical slot machine game
+Exec=nidias-slots
+Icon=clementine
+Terminal=false
+Type=Application
+Categories=Game;Arcade;
+
