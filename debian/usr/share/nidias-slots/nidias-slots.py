@@ -8,9 +8,11 @@ from pathlib import Path
 import cairosvg
 from PIL import Image, ImageTk
 import pygame
-#============================================================
-#NIDIA'S SLOTS
-#============================================================
+
+
+# ============================================================
+# NIDIA'S SLOTS
+# ============================================================
 
 PROJECT_DIR = Path.home() / "Code" / "nidias-slots"
 ICON_DIR = Path("/usr/share/icons/Papirus/128x128/apps")
@@ -18,8 +20,8 @@ SOUND_DIR = Path("/usr/share/sounds")
 
 SPIN_SOUND = SOUND_DIR / "Oxygen-Sys-Special.ogg"
 REEL_STOP_SOUND = SOUND_DIR / "Oxygen-Sys-List-End.ogg"
-WIN_SOUND = SOUND_DIR / "Oxygen-Sys-List-Match-Multiple.ogg"
-LOSE_SOUND = SOUND_DIR / "Oxygen-Sys-App-Negative.ogg"
+LOSE_SOUND = SOUND_DIR / "Oxygen-Sys-List-Match-Multiple.ogg"
+WIN_SOUND = SOUND_DIR / "Oxygen-Sys-App-Negative.ogg"
 
 WINDOW_WIDTH = 1100
 WINDOW_HEIGHT = 850
@@ -32,74 +34,79 @@ MIN_BET = 1
 MAX_BET = 10
 
 ICON_SIZE = 128
-#Time between reel animation frames.
 
+# Time between reel animation frames.
 ANIMATION_SPEED = 75
-#Each reel stops slightly later than the previous reel.
 
-REEL_STOP_DELAY = 550
-#Number of animation cycles before a reel stops.
-
+# Number of animation cycles before a reel stops.
 SPIN_FRAMES = 16
-#============================================================
-#ICONS
-#============================================================
+
+
+# ============================================================
+# ICONS
+# ============================================================
 
 ICON_FILES = [
-"gnome-weather.svg",
-"bell.svg",
-"clementine.svg",
-"among-us.svg",
-"annas-quest.svg",
-"granatier.svg",
-"badland.svg",
-"bendy-and-the-ink-machine.svg",
-"billard-gl.svg",
-"element4l.svg",
-"blobwars.svg",
-"blush-blush.svg",
-"cherrytree.svg",
-"celeste.svg",
-"chess.svg",
-"crab-game.svg",
-"crawl.svg",
-"cuphead.svg",
-"emerald-theme-manager-icon.svg",
-"desura.svg",
-"dont-starve-together.svg",
-"fceux.svg",
+    "gnome-weather.svg",
+    "bell.svg",
+    "clementine.svg",
+    "among-us.svg",
+    "annas-quest.svg",
+    "granatier.svg",
+    "badland.svg",
+    "bendy-and-the-ink-machine.svg",
+    "billard-gl.svg",
+    "element4l.svg",
+    "blobwars.svg",
+    "blush-blush.svg",
+    "cherrytree.svg",
+    "celeste.svg",
+    "chess.svg",
+    "crab-game.svg",
+    "crawl.svg",
+    "cuphead.svg",
+    "emerald-theme-manager-icon.svg",
+    "desura.svg",
+    "dont-starve-together.svg",
+    "fceux.svg",
 ]
-#============================================================
-#PAYLINES
-#============================================================
-#Each number represents the row used by that reel:
-#0 = top
-#1 = middle
-#2 = bottom
-#These give us five visually different lines.
+
+
+# ============================================================
+# PAYLINES
+# ============================================================
+
+# Each number represents the row used by that reel:
+# 0 = top
+# 1 = middle
+# 2 = bottom
 
 PAYLINES = [
-[0, 0, 0, 0, 0], # Top
-[1, 1, 1, 1, 1], # Middle
-[2, 2, 2, 2, 2], # Bottom
-[0, 1, 2, 1, 0], # Down and up
-[2, 1, 0, 1, 2], # Up and down
+    [0, 0, 0, 0, 0],  # Top
+    [1, 1, 1, 1, 1],  # Middle
+    [2, 2, 2, 2, 2],  # Bottom
+    [0, 1, 2, 1, 0],  # Down and up
+    [2, 1, 0, 1, 2],  # Up and down
 ]
-#============================================================
-#PAYTABLE
-#============================================================
-#Number of consecutive matching symbols from the left.
-#These are intentionally generous for the prototype.
+
+
+# ============================================================
+# PAYTABLE
+# ============================================================
+
+# Multiplier is applied to the bet on the winning line.
 
 PAYOUTS = {
-2: 1,
-3: 3,
-4: 8,
-5: 20,
+    2: 5,
+    3: 10,
+    4: 25,
+    5: 100,
 }
-#============================================================
-#SLOT MACHINE ENGINE
-#============================================================
+
+
+# ============================================================
+# SLOT MACHINE ENGINE
+# ============================================================
 
 class SlotMachine:
 
@@ -155,10 +162,11 @@ class SlotMachine:
         return loaded
 
     def random_symbol(self):
-        weights = [10] * min(8, len(self.icons))
+        # Make the first 8 symbols more common.
+        weights = [1] * len(self.icons)
 
-        if len(self.icons) > 8:
-            weights += [1] * (len(self.icons) - 8)
+        for i in range(min(8, len(self.icons))):
+            weights[i] = 5
 
         return random.choices(
             range(len(self.icons)),
@@ -167,7 +175,8 @@ class SlotMachine:
         )[0]
 
     def generate_spin(self):
-        return [
+        # Start with a completely random result.
+        result = [
             [
                 self.random_symbol()
                 for _ in range(ROWS)
@@ -175,8 +184,37 @@ class SlotMachine:
             for _ in range(REELS)
         ]
 
-    def total_bet(self):
-        return self.bet_per_line * len(PAYLINES)
+        # Controlled win chances:
+        #
+        # 2%  = 5 matches
+        # 5%  = 4 matches
+        # 13% = 3 matches
+        # 80% = normal random spin
+
+        roll = random.random()
+
+        if roll < 0.02:
+            # 2% chance of 5 matches
+            symbol = self.random_symbol()
+
+            for reel in range(REELS):
+                result[reel][1] = symbol
+
+        elif roll < 0.07:
+            # 5% chance of 4 matches
+            symbol = self.random_symbol()
+
+            for reel in range(4):
+                result[reel][1] = symbol
+
+        elif roll < 0.20:
+            # 13% chance of 3 matches
+            symbol = self.random_symbol()
+
+            for reel in range(3):
+                result[reel][1] = symbol
+
+        return result
 
     def evaluate_lines(self):
         wins = []
@@ -198,17 +236,12 @@ class SlotMachine:
                     break
 
             if count >= 2:
+                multiplier = PAYOUTS[count]
 
-                if count == 2:
-                    multiplier = PAYOUTS[2]
-                if count == 3:
-                    multiplier = PAYOUTS[3]
-                elif count == 4:
-                    multiplier = PAYOUTS[4]
-                else:
-                    multiplier = PAYOUTS[5]
-
-                payout = self.bet_per_line * multiplier
+                payout = (
+                    self.bet_per_line
+                    * multiplier
+                )
 
                 wins.append({
                     "line": line_number,
@@ -223,32 +256,42 @@ class SlotMachine:
 
         return wins
 
-# --------------------------------------------------------
-
-# Total wager
-
-# --------------------------------------------------------
-
     def total_bet(self):
         return (
             self.bet_per_line
             * len(PAYLINES)
         )
 
-#============================================================
-#GUI
-#============================================================
+
+# ============================================================
+# GUI
+# ============================================================
 
 class NidiaSlotsApp:
 
     def __init__(self, root):
 
         self.root = root
+
         pygame.mixer.init()
-        self.spin_sound = pygame.mixer.Sound(str(SPIN_SOUND))
-        self.reel_stop_sound = pygame.mixer.Sound(str(REEL_STOP_SOUND))
-        self.win_sound = pygame.mixer.Sound(str(LOSE_SOUND))
-        self.lose_sound = pygame.mixer.Sound(str(WIN_SOUND))
+
+        self.spin_sound = pygame.mixer.Sound(
+            str(SPIN_SOUND)
+        )
+
+        self.reel_stop_sound = pygame.mixer.Sound(
+            str(REEL_STOP_SOUND)
+        )
+
+        # Corrected: win sound uses WIN_SOUND.
+        self.win_sound = pygame.mixer.Sound(
+            str(WIN_SOUND)
+        )
+
+        # Corrected: lose sound uses LOSE_SOUND.
+        self.lose_sound = pygame.mixer.Sound(
+            str(LOSE_SOUND)
+        )
 
         self.root.title(
             "Nidia's Slots"
@@ -284,21 +327,16 @@ class NidiaSlotsApp:
         ]
 
         self.build_interface()
-
         self.update_display()
 
-# ========================================================
-
-# INTERFACE
-
-# ========================================================
+    # ========================================================
+    # INTERFACE
+    # ========================================================
 
     def build_interface(self):
 
         # ----------------------------------------------------
-
         # Title
-
         # ----------------------------------------------------
 
         title = tk.Label(
@@ -335,9 +373,7 @@ class NidiaSlotsApp:
         )
 
         # ----------------------------------------------------
-
         # Machine
-
         # ----------------------------------------------------
 
         machine = tk.Frame(
@@ -353,9 +389,7 @@ class NidiaSlotsApp:
         )
 
         # ----------------------------------------------------
-
         # Reel area
-
         # ----------------------------------------------------
 
         reel_frame = tk.Frame(
@@ -399,9 +433,7 @@ class NidiaSlotsApp:
             self.reel_labels.append(column)
 
         # ----------------------------------------------------
-
         # Payline legend
-
         # ----------------------------------------------------
 
         legend = tk.Label(
@@ -423,9 +455,7 @@ class NidiaSlotsApp:
         )
 
         # ----------------------------------------------------
-
         # Information panel
-
         # ----------------------------------------------------
 
         info = tk.Frame(
@@ -492,9 +522,7 @@ class NidiaSlotsApp:
         )
 
         # ----------------------------------------------------
-
         # Buttons
-
         # ----------------------------------------------------
 
         controls = tk.Frame(
@@ -584,11 +612,9 @@ class NidiaSlotsApp:
             pady=5
         )
 
-# ========================================================
-
-# GAME CONTROL
-
-# ========================================================
+    # ========================================================
+    # GAME CONTROL
+    # ========================================================
 
     def increase_bet(self):
 
@@ -638,11 +664,9 @@ class NidiaSlotsApp:
 
         self.update_display()
 
-# ========================================================
-
-# SPIN
-
-# ========================================================
+    # ========================================================
+    # SPIN
+    # ========================================================
 
     def start_spin(self):
 
@@ -667,6 +691,7 @@ class NidiaSlotsApp:
         self.machine.credits -= total_bet
 
         self.spinning = True
+
         self.spin_sound.play()
 
         self.spin_button.config(
@@ -703,15 +728,11 @@ class NidiaSlotsApp:
 
         self.animate_reels()
 
-# ========================================================
-
-# REEL ANIMATION
-
-# ========================================================
+    # ========================================================
+    # REEL ANIMATION
+    # ========================================================
 
     def animate_reels(self):
-
-        # Determine which reels are still spinning.
 
         active_reels = [
             reel
@@ -725,15 +746,9 @@ class NidiaSlotsApp:
 
             return
 
-        # Advance animation.
-
         self.animation_frame += 1
 
         for reel in active_reels:
-
-            # Once enough frames have passed,
-
-            # stop this reel.
 
             stop_frame = (
                 SPIN_FRAMES
@@ -743,9 +758,8 @@ class NidiaSlotsApp:
             if self.animation_frame >= stop_frame:
 
                 self.stop_after[reel] = True
-                self.reel_stop_sound.play()
 
-                # Put final result onto reel.
+                self.reel_stop_sound.play()
 
                 for row in range(ROWS):
 
@@ -758,8 +772,6 @@ class NidiaSlotsApp:
                     )
 
             else:
-
-                # Randomly cycle through symbols.
 
                 for row in range(ROWS):
 
@@ -776,11 +788,9 @@ class NidiaSlotsApp:
             self.animate_reels
         )
 
-# ========================================================
-
-# FINISH SPIN
-
-# ========================================================
+    # ========================================================
+    # FINISH SPIN
+    # ========================================================
 
     def finish_spin(self):
 
@@ -812,7 +822,9 @@ class NidiaSlotsApp:
         )
 
         if wins:
+
             self.win_sound.play()
+
             self.message_label.config(
                 text=(
                     f"WIN! +{total_winnings} CREDITS"
@@ -821,10 +833,18 @@ class NidiaSlotsApp:
             )
 
             self.highlight_wins(wins)
+
             self.start_flash()
-            self.root.after(3000, self.stop_flash)
+
+            self.root.after(
+                3000,
+                self.stop_flash
+            )
+
         else:
+
             self.lose_sound.play()
+
             self.message_label.config(
                 text="NO WIN — TRY AGAIN!",
                 fg="#ffffff"
@@ -832,11 +852,9 @@ class NidiaSlotsApp:
 
         self.update_display()
 
-# ========================================================
-
-# DISPLAY
-
-# ========================================================
+    # ========================================================
+    # DISPLAY
+    # ========================================================
 
     def update_reels(self):
 
@@ -897,23 +915,27 @@ class NidiaSlotsApp:
 
         self.update_reels()
 
-# ========================================================
-
-# PAYLINE HIGHLIGHTING
-
-# ========================================================
+    # ========================================================
+    # PAYLINE HIGHLIGHTING
+    # ========================================================
 
     def clear_highlights(self):
 
         if self.flash_job is not None:
-            self.root.after_cancel(self.flash_job)
+
+            self.root.after_cancel(
+                self.flash_job
+            )
+
             self.flash_job = None
 
         self.flash_state = False
         self.winning_positions = set()
 
         for reel in range(REELS):
+
             for row in range(ROWS):
+
                 self.reel_labels[
                     reel
                 ][row].config(
@@ -922,18 +944,20 @@ class NidiaSlotsApp:
                     relief=tk.RIDGE
                 )
 
-
     def highlight_wins(self, wins):
 
         self.clear_highlights()
+
         self.winning_positions = set()
 
         for win in wins:
 
             for reel, row in win["positions"]:
-            
-                self.winning_positions.add((reel, row))
-                
+
+                self.winning_positions.add(
+                    (reel, row)
+                )
+
                 self.reel_labels[
                     reel
                 ][row].config(
@@ -941,15 +965,24 @@ class NidiaSlotsApp:
                     bd=3,
                     relief=tk.RAISED
                 )
+
     def start_flash(self):
+
         self.flash_state = not self.flash_state
 
-        color = "#fff200" if self.flash_state else "#ffffff"
+        color = (
+            "#fff200"
+            if self.flash_state
+            else "#ffffff"
+        )
 
         for reel, row in self.winning_positions:
+
             self.reel_labels[
                 reel
-            ][row].config(bg=color)
+            ][row].config(
+                bg=color
+            )
 
         self.flash_job = self.root.after(
             250,
@@ -957,11 +990,17 @@ class NidiaSlotsApp:
         )
 
     def stop_flash(self):
+
         if self.flash_job is not None:
-            self.root.after_cancel(self.flash_job)
+
+            self.root.after_cancel(
+                self.flash_job
+            )
+
             self.flash_job = None
 
         for reel, row in self.winning_positions:
+
             self.reel_labels[
                 reel
             ][row].config(
@@ -970,9 +1009,10 @@ class NidiaSlotsApp:
                 relief=tk.RIDGE
             )
 
-#============================================================
-#MAIN
-#============================================================
+
+# ============================================================
+# MAIN
+# ============================================================
 
 def main():
 
@@ -1004,5 +1044,8 @@ def main():
 
     root.mainloop()
 
+
 if __name__ == "__main__":
     main()
+
+
